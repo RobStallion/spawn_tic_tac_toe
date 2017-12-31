@@ -36,17 +36,14 @@ defmodule TTT.Game do
 
   def move() do
     receive do
-      {make_move_pid, tile, board} ->
-        case tile do
-          -1 ->
-            send(make_move_pid, { :human, board, get_player_move(board), 1})
-            move()
-          1 ->
-            send(make_move_pid, { :comp, board, get_comp_move(board), -1 })
-            move()
-          :end ->
-            exit(:normal)
-        end
+      {make_move_pid, just_played, board} ->
+        next_to_play = if just_played == -1, do: 1, else: -1
+        next_tile = if just_played == -1, do: get_player_move(board), else: get_comp_move(board)
+
+        send(make_move_pid, { board, next_tile, next_to_play })
+        move()
+      :end ->
+        exit(:normal)
     end
   end
 
