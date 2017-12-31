@@ -3,24 +3,12 @@ defmodule TTT.Game do
 
   def make_move(pid, move_pid) do
     receive do
-      {:human, board, tile, team } ->
+      { board, tile, team } ->
         updated_board = update_board(board, tile, team)
         case Outcome.check_outcome(updated_board) do
           :win ->
             send(move_pid, :end)
             send(pid, {:human_win, updated_board})
-          :draw ->
-            send(pid, {:draw, updated_board})
-          :false ->
-            send(move_pid, {self(), team, updated_board})
-            make_move(pid, move_pid)
-        end
-      {:comp, board, tile, team } ->
-        updated_board = update_board(board, tile, team)
-        case Outcome.check_outcome(updated_board) do
-          :win ->
-            send(move_pid, :end)
-            send(pid, {:comp_win, updated_board})
           :draw ->
             send(pid, {:draw, updated_board})
           :false ->
