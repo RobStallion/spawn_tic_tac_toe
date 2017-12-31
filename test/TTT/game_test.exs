@@ -16,7 +16,7 @@ defmodule TTT.GameTest do
     end
 
     test "update_board returns board with players move", fixture do
-      assert Game.update_board(fixture.board, 1, 1) == fixture.one_move
+      assert Game.update_board(fixture.board, 0, 1) == fixture.one_move
     end
 
     test "get_comp_move picks a random tile that has not been played on yet",
