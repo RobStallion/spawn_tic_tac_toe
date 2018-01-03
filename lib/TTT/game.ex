@@ -1,47 +1,45 @@
 defmodule TTT.Game do
   alias TTT.Outcome
 
-  def make_move(pid, move_pid) do
+  def check_result(pid, get_move_pid) do
     receive do
       { board, tile, team } ->
         updated_board = update_board(board, tile, team)
         case Outcome.check_outcome(updated_board) do
           :win ->
-            send(move_pid, :end)
+            send(get_move_pid, :end)
             send(pid, {:human_win, updated_board})
           :draw ->
             send(pid, {:draw, updated_board})
           :false ->
-            send(move_pid, {self(), team, updated_board})
-            make_move(pid, move_pid)
+            send(get_move_pid, {self(), team, updated_board})
+            check_result(pid, get_move_pid)
         end
     end
   end
 
   def run(tile) do
-    move_pid = spawn(TTT.Game, :move, [])
-    make_move_pid  = spawn(TTT.Game, :make_move, [self(), move_pid])
+    get_move_pid = spawn(TTT.Game, :get_move, [])
+    check_result_pid  = spawn(TTT.Game, :check_result, [self(), get_move_pid])
 
-    send(make_move_pid, {:human, create_board(), tile, 1})
+    send(check_result_pid, {create_board(), tile, 1})
 
     receive do
       {:human_win, board} ->
         IO.inspect board, label: "You Win!!"
-      {:comp_win, board} ->
-        IO.inspect board, label: "Computer Wins"
       {:draw, board} ->
         IO.inspect board, label: "It's a draw"
     end
   end
 
-  def move() do
+  def get_move() do
     receive do
-      {make_move_pid, just_played, board} ->
+      {check_result_pid, just_played, board} ->
         next_to_play = if just_played == -1, do: 1, else: -1
         next_tile = if just_played == -1, do: get_player_move(board), else: get_comp_move(board)
 
-        send(make_move_pid, { board, next_tile, next_to_play })
-        move()
+        send(check_result_pid, { board, next_tile, next_to_play })
+        get_move()
       :end ->
         exit(:normal)
     end
