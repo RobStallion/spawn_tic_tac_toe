@@ -1,68 +1,45 @@
 defmodule TTT.Game do
   alias TTT.Outcome
 
-  def make_move(pid, comp_move_pid, human_move_pid) do
+  def check_result(pid, get_move_pid) do
     receive do
-      {:human, board, tile, team } ->
+      { board, tile, team } ->
         updated_board = update_board(board, tile, team)
         case Outcome.check_outcome(updated_board) do
           :win ->
-            send(human_move_pid, :end)
+            send(get_move_pid, :end)
             send(pid, {:human_win, updated_board})
           :draw ->
             send(pid, {:draw, updated_board})
           :false ->
-            send(comp_move_pid, {self(), updated_board})
-            make_move(pid, comp_move_pid, human_move_pid)
-        end
-      {:comp, board, tile, team } ->
-        updated_board = update_board(board, tile, team)
-        case Outcome.check_outcome(updated_board) do
-          :win ->
-            send(human_move_pid, :end)
-            send(pid, {:comp_win, updated_board})
-          :draw ->
-            send(pid, {:draw, updated_board})
-          :false ->
-            send(human_move_pid, {self(), updated_board})
-            make_move(pid, comp_move_pid, human_move_pid)
+            send(get_move_pid, {self(), team, updated_board})
+            check_result(pid, get_move_pid)
         end
     end
   end
 
   def run(tile) do
-    comp_move_pid  = spawn(TTT.Game, :comp_move, [])
-    human_move_pid = spawn(TTT.Game, :human_move, [])
-    make_move_pid  = spawn(TTT.Game, :make_move, [self(), comp_move_pid, human_move_pid])
+    get_move_pid = spawn(TTT.Game, :get_move, [])
+    check_result_pid  = spawn(TTT.Game, :check_result, [self(), get_move_pid])
 
-    send(make_move_pid, {:human, create_board(), tile, 1})
+    send(check_result_pid, {create_board(), tile, 1})
 
     receive do
       {:human_win, board} ->
         IO.inspect board, label: "You Win!!"
-      {:comp_win, board} ->
-        IO.inspect board, label: "Computer Wins"
       {:draw, board} ->
         IO.inspect board, label: "It's a draw"
     end
   end
 
-  # figure out a good way to refator this and comp_move as basically the same
-  def human_move() do
+  def get_move() do
     receive do
-      {make_move_pid, board} ->
-        send(make_move_pid, { :human, board, get_player_move(board), 1 })
-        human_move()
-      :end ->
-        exit(:normal)
-    end
-  end
+      {check_result_pid, just_played, board} ->
+        next_to_play = if just_played == -1, do: 1, else: -1
+        next_tile = if just_played == -1, do: get_player_move(board), else: get_comp_move(board)
 
-  def comp_move() do
-    receive do
-      {make_move_pid, board} ->
-        send(make_move_pid, { :comp, board, get_comp_move(board), -1 })
-        comp_move()
+        send(check_result_pid, { board, next_tile, next_to_play })
+        get_move()
       :end ->
         exit(:normal)
     end
