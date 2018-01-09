@@ -6,14 +6,14 @@ defmodule TTT.Game do
       { board, tile, team } ->
         updated_board = update_board(board, tile, team)
         case Outcome.check_outcome(updated_board) do
-          :win ->
-            send(get_move_pid, :end)
-            send(pid, {:human_win, updated_board})
           :draw ->
             send(pid, {:draw, updated_board})
           :false ->
             send(get_move_pid, {self(), team, updated_board})
             check_result(pid, get_move_pid)
+          player ->
+            send(get_move_pid, :end)
+            send(pid, {:win, player, updated_board})
         end
     end
   end
@@ -25,8 +25,8 @@ defmodule TTT.Game do
     send(check_result_pid, {create_board(), tile, 1})
 
     receive do
-      {:human_win, board} ->
-        IO.inspect board, label: "You Win!!"
+      {:win, player, board} ->
+        IO.inspect board, label: "#{player} Wins!!"
       {:draw, board} ->
         IO.inspect board, label: "It's a draw"
     end
