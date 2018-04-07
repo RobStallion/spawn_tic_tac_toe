@@ -2,12 +2,17 @@ defmodule Ttt.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :ttt,
-     version: "0.1.0",
-     elixir: "~> 1.4",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps()]
+    [
+      app: :ttt,
+      version: "0.1.0",
+      elixir: "~> 1.4",
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test]
+    ]
+
   end
 
   # Configuration for the OTP application
@@ -28,6 +33,8 @@ defmodule Ttt.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:excoveralls, "~> 0.8", only: :test}
+    ]
   end
 end
